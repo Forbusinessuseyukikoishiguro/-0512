@@ -1,0 +1,824 @@
+# Django × Vue.js ファイルインポート シーン別チートシート
+
+## 1. 基本的なファイルインポート
+
+### Django HTMLテンプレート
+
+```html
+<!-- 単純なインクルード -->
+{% include "example/test1.html" %}
+
+<!-- パラメータ付きインクルード -->
+{% include "example2/test2.html" with title="タイトル" content="内容" %}
+
+<!-- 条件付きインクルード -->
+{% if show_component %}
+  {% include "example/test1.html" %}
+{% else %}
+  {% include "example2/test2.html" %}
+{% endif %}
+
+<!-- 親コンテキストを渡さずにインクルード -->
+{% include "example/test1.html" with title="タイトル" only %}
+
+<!-- 継承による再利用 -->
+{% extends "base.html" %}
+{% block content %}
+  <!-- コンテンツをここに配置 -->
+{% endblock %}
+```
+
+### Vue.js
+
+```javascript
+// グローバルコンポーネント登録
+Vue.component('test1-component', {
+  template: '#test1-template' // IDセレクタでテンプレートを指定
+});
+
+// ローカルコンポーネント登録
+new Vue({
+  components: {
+    'test1-component': {
+      template: '<div>Test1 Component</div>'
+    }
+  }
+});
+
+// ES6モジュールインポート
+import Test1 from './example/Test1.vue';
+import Test2 from './example2/Test2.vue';
+
+export default {
+  components: {
+    Test1,
+    Test2
+  }
+}
+```
+
+## 2. レイアウト構築シーン
+
+### Django HTMLテンプレート
+
+```html
+<!-- ベースレイアウト (templates/base.html) -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{% block title %}デフォルト{% endblock %}</title>
+</head>
+<body>
+  {% include "components/header.html" %}
+  
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+  
+  {% include "components/footer.html" %}
+</body>
+</html>
+
+<!-- ページテンプレート (templates/page.html) -->
+{% extends "base.html" %}
+
+{% block title %}ページタイトル{% endblock %}
+
+{% block content %}
+  <div class="sidebar">
+    {% include "components/sidebar.html" %}
+  </div>
+  
+  <div class="main-content">
+    {% include "example/test1.html" %}
+    {% include "example2/test2.html" %}
+  </div>
+{% endblock %}
+```
+
+### Vue.js
+
+```html
+<!-- App.vue -->
+<template>
+  <div>
+    <app-header></app-header>
+    <main>
+      <sidebar></sidebar>
+      <div class="content">
+        <test1-component></test1-component>
+        <test2-component></test2-component>
+      </div>
+    </main>
+    <app-footer></app-footer>
+  </div>
+</template>
+
+<script>
+import AppHeader from './components/AppHeader.vue';
+import Sidebar from './components/Sidebar.vue';
+import AppFooter from './components/AppFooter.vue';
+import Test1Component from './example/Test1.vue';
+import Test2Component from './example2/Test2.vue';
+
+export default {
+  components: {
+    AppHeader,
+    Sidebar,
+    AppFooter,
+    Test1Component,
+    Test2Component
+  }
+}
+</script>
+```
+
+## 3. データ連携シーン
+
+### Django HTMLテンプレート
+
+```html
+<!-- Django→テンプレートにデータを渡す -->
+{% include "example/user_profile.html" with user=current_user %}
+
+<!-- ループでデータを渡す -->
+<div class="product-list">
+  {% for product in products %}
+    {% include "example/product_card.html" with product=product %}
+  {% endfor %}
+</div>
+
+<!-- Django→Vueにデータを渡す -->
+<div id="app" 
+     data-products="{{ products_json|escapejs }}"
+     data-user="{{ user_json|escapejs }}">
+  <!-- Vueアプリがマウントされる -->
+</div>
+```
+
+### Vue.js
+
+```html
+<!-- コンポーネント間のデータ受け渡し -->
+<template>
+  <div>
+    <!-- 親から子へのデータ渡し -->
+    <product-list :products="products"></product-list>
+    
+    <!-- 子から親へのイベント -->
+    <child-component @item-selected="handleSelection"></child-component>
+  </div>
+</template>
+
+<script>
+import ProductList from './example/ProductList.vue';
+import ChildComponent from './example2/ChildComponent.vue';
+
+export default {
+  components: {
+    ProductList,
+    ChildComponent
+  },
+  data() {
+    return {
+      // Djangoから渡されたデータを取得
+      products: JSON.parse(this.$el.getAttribute('data-products') || '[]')
+    }
+  },
+  methods: {
+    handleSelection(item) {
+      console.log('Selected:', item);
+    }
+  }
+}
+</script>
+```
+
+## 4. 多言語/国際化対応シーン
+
+### Django HTMLテンプレート
+
+```html
+<!-- 言語切り替え機能 -->
+{% load i18n %}
+
+<!-- 言語に応じたインクルード -->
+{% get_current_language as LANGUAGE_CODE %}
+{% if LANGUAGE_CODE == 'en' %}
+  {% include "example2/test2_en.html" %}
+{% else %}
+  {% include "example/test1_ja.html" %}
+{% endif %}
+
+<!-- テンプレートでの翻訳 -->
+<h1>{% trans "ようこそ" %}</h1>
+
+<!-- 変数を含む翻訳 -->
+{% blocktrans with name=user.name %}
+  こんにちは、{{ name }}さん
+{% endblocktrans %}
+```
+
+### Vue.js
+
+```javascript
+// Vue i18n の利用
+import Vue from 'vue';
+import VueI18n from 'vue-i18n';
+import JaComponent from './example/JaComponent.vue';
+import EnComponent from './example2/EnComponent.vue';
+
+Vue.use(VueI18n);
+
+// 翻訳メッセージの定義
+const messages = {
+  ja: {
+    welcome: 'ようこそ'
+  },
+  en: {
+    welcome: 'Welcome'
+  }
+}
+
+// i18nインスタンスの作成
+const i18n = new VueI18n({
+  locale: document.documentElement.lang || 'ja', // デフォルト言語
+  messages
+});
+
+// 言語に応じたコンポーネント切り替え
+Vue.component('language-aware-component', {
+  functional: true,
+  render(h, context) {
+    const locale = i18n.locale;
+    return h(locale === 'en' ? EnComponent : JaComponent, context.data, context.children);
+  }
+});
+
+new Vue({
+  i18n,
+  // ...
+});
+```
+
+## 5. SPAライクなページ切り替えシーン
+
+### Django HTMLテンプレート
+
+```html
+<!-- タブ切り替えUI -->
+<div class="tabs">
+  <button class="tab-btn active" data-target="tab1">Tab 1</button>
+  <button class="tab-btn" data-target="tab2">Tab 2</button>
+</div>
+
+<div class="tab-content">
+  <div id="tab1" class="tab-pane active">
+    {% include "example/test1.html" %}
+  </div>
+  <div id="tab2" class="tab-pane">
+    {% include "example2/test2.html" %}
+  </div>
+</div>
+
+<script>
+  // タブ切り替えスクリプト
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      // タブボタンのアクティブ状態を切り替え
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      // タブコンテンツの表示を切り替え
+      document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+      document.getElementById(btn.dataset.target).classList.add('active');
+    });
+  });
+</script>
+```
+
+### Vue.js
+
+```html
+<!-- Vue Router を使用したSPA -->
+<template>
+  <div>
+    <nav>
+      <router-link to="/">Home</router-link>
+      <router-link to="/test1">Test1</router-link>
+      <router-link to="/test2">Test2</router-link>
+    </nav>
+    
+    <router-view></router-view>
+  </div>
+</template>
+
+<script>
+import Vue from 'vue';
+import VueRouter from 'vue-router';
+import Home from './Home.vue';
+import Test1 from './example/Test1.vue';
+import Test2 from './example2/Test2.vue';
+
+Vue.use(VueRouter);
+
+const routes = [
+  { path: '/', component: Home },
+  { path: '/test1', component: Test1 },
+  { path: '/test2', component: Test2 }
+];
+
+const router = new VueRouter({
+  mode: 'history',
+  base: '/app/',
+  routes
+});
+
+export default {
+  router
+}
+</script>
+```
+
+## 6. 条件付きロード/遅延ロードシーン
+
+### Django HTMLテンプレート
+
+```html
+<!-- ユーザー種別による条件分岐 -->
+{% if user.is_staff %}
+  {% include "example/admin_panel.html" %}
+{% else %}
+  {% include "example2/user_panel.html" %}
+{% endif %}
+
+<!-- デバイス種別による分岐 -->
+{% if is_mobile %}
+  {% include "example/mobile_view.html" %}
+{% else %}
+  {% include "example2/desktop_view.html" %}
+{% endif %}
+
+<!-- JavaScript遅延ロード -->
+<div id="lazy-load-container" data-template="example/heavy_component.html">
+  <button onclick="loadComponent()">コンポーネントを読み込む</button>
+</div>
+
+<script>
+  function loadComponent() {
+    const container = document.getElementById('lazy-load-container');
+    const templatePath = container.dataset.template;
+    
+    fetch(`/load-template/?path=${templatePath}`)
+      .then(response => response.text())
+      .then(html => {
+        container.innerHTML = html;
+      });
+  }
+</script>
+```
+
+### Vue.js
+
+```javascript
+// 動的インポート（遅延ロード）
+export default {
+  components: {
+    // 必須コンポーネントは通常インポート
+    'always-needed': () => import('./components/AlwaysNeeded.vue'),
+    
+    // 条件付きコンポーネントは動的インポート
+    'test1-component': () => import('./example/Test1.vue'),
+    'test2-component': () => import('./example2/Test2.vue')
+  },
+  
+  computed: {
+    // 条件に応じたコンポーネント選択
+    currentComponent() {
+      return this.isAdmin ? 'test1-component' : 'test2-component';
+    }
+  },
+  
+  template: `
+    <div>
+      <always-needed></always-needed>
+      <component :is="currentComponent"></component>
+    </div>
+  `
+}
+
+// Vue Routerで遅延ロード
+const routes = [
+  {
+    path: '/test1',
+    component: () => import('./example/Test1.vue') // 遅延ロード
+  },
+  {
+    path: '/test2',
+    component: () => import('./example2/Test2.vue') // 遅延ロード
+  }
+];
+```
+
+## 7. フォームとバリデーションシーン
+
+### Django HTMLテンプレート
+
+```html
+<!-- フォームテンプレートのインクルード -->
+<form method="post">
+  {% csrf_token %}
+  
+  <!-- 基本情報フォーム -->
+  {% include "example/basic_info_form.html" with form=basic_info_form %}
+  
+  <!-- 住所情報フォーム -->
+  {% include "example2/address_form.html" with form=address_form %}
+  
+  <button type="submit">送信</button>
+</form>
+
+<!-- エラーメッセージ表示 -->
+{% if form.errors %}
+  {% include "components/form_errors.html" with errors=form.errors %}
+{% endif %}
+```
+
+### Vue.js
+
+```html
+<template>
+  <div>
+    <form @submit.prevent="submitForm">
+      <!-- 基本情報コンポーネント -->
+      <basic-info-form v-model="basicInfo" @validation="handleBasicValidation"></basic-info-form>
+      
+      <!-- 住所情報コンポーネント -->
+      <address-form v-model="addressInfo" @validation="handleAddressValidation"></address-form>
+      
+      <button type="submit" :disabled="!isFormValid">送信</button>
+    </form>
+  </div>
+</template>
+
+<script>
+import BasicInfoForm from './example/BasicInfoForm.vue';
+import AddressForm from './example2/AddressForm.vue';
+
+export default {
+  components: {
+    BasicInfoForm,
+    AddressForm
+  },
+  data() {
+    return {
+      basicInfo: {},
+      addressInfo: {},
+      validation: {
+        basicInfo: false,
+        addressInfo: false
+      }
+    }
+  },
+  computed: {
+    isFormValid() {
+      return this.validation.basicInfo && this.validation.addressInfo;
+    }
+  },
+  methods: {
+    handleBasicValidation(isValid) {
+      this.validation.basicInfo = isValid;
+    },
+    handleAddressValidation(isValid) {
+      this.validation.addressInfo = isValid;
+    },
+    submitForm() {
+      if (this.isFormValid) {
+        // フォーム送信処理
+      }
+    }
+  }
+}
+</script>
+```
+
+## 8. APIデータ連携シーン
+
+### Django (views.py)
+
+```python
+from django.http import JsonResponse
+from django.shortcuts import render
+
+def api_view(request):
+    data = {
+        'products': [
+            {'id': 1, 'name': '商品1', 'price': 1000},
+            {'id': 2, 'name': '商品2', 'price': 2000}
+        ]
+    }
+    return JsonResponse(data)
+
+def app_view(request):
+    return render(request, 'app.html')
+```
+
+### Vue.js
+
+```html
+<template>
+  <div>
+    <h1>商品一覧</h1>
+    
+    <!-- ローディング表示 -->
+    <div v-if="loading">読み込み中...</div>
+    
+    <!-- エラー表示 -->
+    <div v-else-if="error">{{ error }}</div>
+    
+    <!-- データ表示 -->
+    <div v-else>
+      <!-- Test1コンポーネントで商品表示 -->
+      <test1-component 
+        v-for="product in products" 
+        :key="product.id"
+        :product="product"
+        @add-to-cart="addToCart"
+      ></test1-component>
+      
+      <!-- Test2コンポーネントでカート表示 -->
+      <test2-component :cart-items="cartItems"></test2-component>
+    </div>
+  </div>
+</template>
+
+<script>
+import Test1Component from './example/Test1.vue';
+import Test2Component from './example2/Test2.vue';
+
+export default {
+  components: {
+    Test1Component,
+    Test2Component
+  },
+  data() {
+    return {
+      loading: true,
+      error: null,
+      products: [],
+      cartItems: []
+    }
+  },
+  mounted() {
+    this.fetchProducts();
+  },
+  methods: {
+    fetchProducts() {
+      fetch('/api/products/')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then(data => {
+          this.products = data.products;
+          this.loading = false;
+        })
+        .catch(error => {
+          this.error = `データの取得に失敗しました: ${error.message}`;
+          this.loading = false;
+        });
+    },
+    addToCart(product) {
+      this.cartItems.push(product);
+    }
+  }
+}
+</script>
+```
+
+## 9. エラーハンドリングシーン
+
+### Django HTMLテンプレート
+
+```html
+<!-- エラーページテンプレート -->
+{% extends "base.html" %}
+
+{% block content %}
+  {% if status_code == 404 %}
+    {% include "errors/404.html" %}
+  {% elif status_code == 500 %}
+    {% include "errors/500.html" %}
+  {% else %}
+    {% include "errors/generic.html" with error_message=error_message %}
+  {% endif %}
+  
+  <!-- エラー詳細（開発環境のみ） -->
+  {% if debug %}
+    {% include "errors/debug_info.html" with exception=exception %}
+  {% endif %}
+{% endblock %}
+
+<!-- 404.html -->
+<div class="error-container">
+  <h1>ページが見つかりません</h1>
+  <p>お探しのページは存在しないか、移動した可能性があります。</p>
+  <a href="{% url 'home' %}">ホームに戻る</a>
+</div>
+```
+
+### Vue.js
+
+```html
+<template>
+  <div>
+    <!-- エラーバウンダリ -->
+    <error-boundary v-if="hasError" :error="error" @retry="retry">
+      <!-- エラー時の代替UI -->
+      <default-error-view 
+        v-if="error.status === 404" 
+        message="ページが見つかりません"
+      ></default-error-view>
+      <server-error-view 
+        v-else-if="error.status === 500" 
+        message="サーバーエラーが発生しました"
+      ></server-error-view>
+      <generic-error-view 
+        v-else 
+        :message="error.message"
+      ></generic-error-view>
+    </error-boundary>
+    
+    <!-- 通常コンテンツ -->
+    <div v-else>
+      <test1-component @error="handleComponentError"></test1-component>
+      <test2-component @error="handleComponentError"></test2-component>
+    </div>
+  </div>
+</template>
+
+<script>
+import ErrorBoundary from './components/ErrorBoundary.vue';
+import DefaultErrorView from './errors/DefaultErrorView.vue';
+import ServerErrorView from './errors/ServerErrorView.vue';
+import GenericErrorView from './errors/GenericErrorView.vue';
+import Test1Component from './example/Test1.vue';
+import Test2Component from './example2/Test2.vue';
+
+export default {
+  components: {
+    ErrorBoundary,
+    DefaultErrorView,
+    ServerErrorView,
+    GenericErrorView,
+    Test1Component,
+    Test2Component
+  },
+  data() {
+    return {
+      hasError: false,
+      error: null
+    }
+  },
+  methods: {
+    handleComponentError(error) {
+      this.error = error;
+      this.hasError = true;
+      console.error('Component error:', error);
+    },
+    retry() {
+      this.hasError = false;
+      this.error = null;
+      // リトライロジック
+    }
+  },
+  errorCaptured(err, vm, info) {
+    this.error = {
+      message: err.message,
+      info: info
+    };
+    this.hasError = true;
+    // エラーを伝播させない
+    return false;
+  }
+}
+</script>
+```
+
+## 10. 認証/パーミッションシーン
+
+### Django HTMLテンプレート
+
+```html
+<!-- ユーザー認証状態に応じたインクルード -->
+{% if user.is_authenticated %}
+  {% include "user/authenticated_nav.html" %}
+  
+  {% if user.is_staff %}
+    {% include "admin/admin_panel.html" %}
+  {% endif %}
+{% else %}
+  {% include "user/guest_nav.html" %}
+  
+  <!-- ログインフォーム -->
+  {% include "auth/login_form.html" %}
+{% endif %}
+
+<!-- 権限チェック -->
+{% if perms.app.can_view_stats %}
+  {% include "example/statistics.html" %}
+{% endif %}
+```
+
+### Vue.js
+
+```html
+<template>
+  <div>
+    <!-- 認証状態によるナビゲーション切り替え -->
+    <authenticated-nav v-if="isAuthenticated"></authenticated-nav>
+    <guest-nav v-else></guest-nav>
+    
+    <!-- 権限に基づくコンポーネント表示 -->
+    <admin-panel v-if="userRoles.includes('admin')"></admin-panel>
+    
+    <!-- 条件付きレンダリング -->
+    <test1-component v-if="can('view_test1')"></test1-component>
+    <test2-component v-if="can('view_test2')"></test2-component>
+    
+    <!-- 未認証ユーザー向け -->
+    <login-form v-if="!isAuthenticated" @login="handleLogin"></login-form>
+  </div>
+</template>
+
+<script>
+import AuthenticatedNav from './components/AuthenticatedNav.vue';
+import GuestNav from './components/GuestNav.vue';
+import AdminPanel from './admin/AdminPanel.vue';
+import Test1Component from './example/Test1.vue';
+import Test2Component from './example2/Test2.vue';
+import LoginForm from './auth/LoginForm.vue';
+
+export default {
+  components: {
+    AuthenticatedNav,
+    GuestNav,
+    AdminPanel,
+    Test1Component,
+    Test2Component,
+    LoginForm
+  },
+  data() {
+    return {
+      user: JSON.parse(document.getElementById('user-data').textContent || '{}'),
+      userRoles: [],
+      userPermissions: []
+    }
+  },
+  computed: {
+    isAuthenticated() {
+      return !!this.user.id;
+    }
+  },
+  mounted() {
+    if (this.isAuthenticated) {
+      this.fetchUserRoles();
+    }
+  },
+  methods: {
+    fetchUserRoles() {
+      fetch('/api/user/roles/')
+        .then(response => response.json())
+        .then(data => {
+          this.userRoles = data.roles;
+          this.userPermissions = data.permissions;
+        });
+    },
+    can(permission) {
+      return this.userPermissions.includes(permission);
+    },
+    handleLogin(credentials) {
+      // ログイン処理
+    }
+  }
+}
+</script>
+```
+
+## 11. ベストプラクティス早見表
+
+| シーン | Django HTML | Vue.js |
+|-------|------------|--------|
+| 基本インポート | `{% include "path/to/file.html" %}` | `import Component from './path/Component.vue'` |
+| パラメータ渡し | `{% include "file.html" with param=value %}` | `<component :prop="value"></component>` |
+| 条件分岐 | `{% if condition %}{% include ... %}{% endif %}` | `<component-a v-if="condition"></component-a>` |
+| ループ処理 | `{% for item in items %}{% include ... %}{% endfor %}` | `<component v-for="item in items" :key="item.id"></component>` |
+| 継承/コンポジション | `{% extends "base.html" %}` | `import { mixins } from 'vue-property-decorator'` |
+| イベント処理 | スクリプトタグで実装 | `@event="handler"` |
+| ローディング | サーバーサイドでレンダリング | `v-if="loading"` + 非同期コンポーネント |
+| 多言語対応 | `{% trans %}` + 言語固有テンプレート | Vue i18n + 動的コンポーネント |
+| エラーハンドリング | try/except + エラーテンプレート | エラーバウンダリ + エラーコンポーネント |
+
+このチートシートを参考に、プロジェクトの要件に合わせた最適なインポート方法を選択してください。複雑なプロジェクトでは、複数のアプローチを組み合わせることで、効率的な開発とメンテナンスが可能になります。
