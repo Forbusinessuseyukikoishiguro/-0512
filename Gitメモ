@@ -1,0 +1,231 @@
+# AWS CodeCommitを使ったプルリクエストの作成方法
+
+AWS CodeCommitはAWSが提供するマネージドGitリポジトリサービスです。GitHubの代わりにCodeCommitを使ってプルリクエストを作成・管理する方法を解説します。
+
+## 前提条件
+
+1. AWS CLIがインストールされていること
+2. AWS IAMユーザーがセットアップされていること
+3. Git認証情報が設定されていること
+
+## AWS認証情報のセットアップ
+
+まず、AWS CodeCommitにアクセスするための認証情報をセットアップします。
+
+```bash
+# AWSプロファイルの設定（初回のみ）
+aws configure --profile your-profile-name
+# AWS Access KeyとSecret Key、リージョンを入力
+
+# または既存のプロファイルを使用する場合は環境変数で指定
+export AWS_PROFILE=your-profile-name
+```
+
+## Git認証情報ヘルパーのセットアップ
+
+```bash
+# CodeCommit用のGit認証情報ヘルパーを設定
+git config --global credential.helper '!aws codecommit credential-helper $@'
+git config --global credential.UseHttpPath true
+```
+
+## リポジトリのクローン
+
+```bash
+# CodeCommitリポジトリをクローン
+git clone https://git-codecommit.us-east-1.amazonaws.com/v1/repos/your-repository-name
+cd your-repository-name
+```
+
+## ブランチ作成と変更の実装
+
+```bash
+# 新しいブランチを作成
+git checkout -b feature-branch
+
+# ファイルを変更し、コミット
+# (ファイルを編集)
+git add .
+git commit -m "機能追加: 新しいログイン画面の実装"
+
+# ブランチをCodeCommitにプッシュ
+git push -u origin feature-branch
+```
+
+## プルリクエスト（CodeCommitでは「プルリクエスト」）の作成
+
+### AWSコンソールから作成する方法
+
+1. AWSマネジメントコンソールにログイン
+2. CodeCommitサービスに移動
+3. リポジトリを選択
+4. 「プルリクエスト」タブをクリック
+5. 「プルリクエストの作成」ボタンをクリック
+6. ソースブランチとターゲットブランチを選択
+7. タイトルと説明を入力
+8. 「作成」ボタンをクリック
+
+### AWS CLIを使用して作成する方法
+
+```bash
+# プルリクエストを作成
+aws codecommit create-pull-request \
+  --title "新しいログイン画面の実装" \
+  --description "ログイン画面のバリデーションロジックを改善しました" \
+  --targets repositoryName=your-repository-name,sourceReference=feature-branch,destinationReference=main
+
+# 作成されたプルリクエストの情報が表示されます
+```
+
+## プルリクエストの確認とレビュー
+
+### AWSコンソールから
+
+1. CodeCommitのプルリクエスト一覧から該当のプルリクエストを選択
+2. 「変更」タブで差分を確認
+3. コメントを追加するにはコードの行を選択し、コメントを入力
+
+### AWS CLIを使用
+
+```bash
+# プルリクエスト一覧を表示
+aws codecommit list-pull-requests \
+  --repository-name your-repository-name \
+  --pull-request-status OPEN
+
+# 特定のプルリクエストの詳細を表示
+aws codecommit get-pull-request \
+  --pull-request-id your-pull-request-id
+
+# プルリクエストの変更内容を表示
+aws codecommit get-pull-request-overview \
+  --pull-request-id your-pull-request-id
+```
+
+## プルリクエストへのコメント追加
+
+```bash
+# コメントを追加
+aws codecommit post-comment-for-pull-request \
+  --pull-request-id your-pull-request-id \
+  --repository-name your-repository-name \
+  --before-commit-id before-commit-id \
+  --after-commit-id after-commit-id \
+  --location filePath=path/to/file,filePosition=1,relativeFileVersion=AFTER \
+  --content "ここのバリデーションロジックをもう少し強化したほうがいいですね"
+```
+
+## プルリクエストのマージ
+
+### AWSコンソールから
+
+1. プルリクエストの詳細ページで「マージ」ボタンをクリック
+2. マージ方法を選択
+3. マージコミットメッセージを入力
+4. 「マージ」ボタンをクリック
+
+### AWS CLIを使用
+
+```bash
+# プルリクエストをマージ
+aws codecommit merge-pull-request-by-fast-forward \
+  --pull-request-id your-pull-request-id \
+  --repository-name your-repository-name \
+  --source-commit-id source-commit-id
+```
+
+## まとめ
+
+CodeCommitを使ったプルリクエストのワークフローはGitHubやGitLabとよく似ていますが、AWS特有の認証や操作方法があります。チーム内で統一したプロセスを確立し、AWSのIAMの権限管理と組み合わせることで、セキュアな開発環境を構築できます。
+
+必要に応じてAWS CLIのコマンドをシェルスクリプトにまとめたり、CI/CDパイプラインと連携させたりすることで、より効率的な開発ワークフローを実現できます。
+
+ーーーーーーーーーーーーーーーーーーーー
+# GitHubを使わずにGitでプルリクエストを作成・共有する方法
+
+GitHubを使わなくても、Gitでコード変更を共有してレビューを依頼する方法はいくつかあります。主な方法を紹介します：
+
+## 1. 他のGitホスティングサービスを使う方法
+
+### GitLabの場合
+```bash
+# リポジトリをクローン
+git clone https://gitlab.com/プロジェクト名/リポジトリ名.git
+
+# ブランチを作成して変更
+git checkout -b 機能ブランチ名
+# ファイル変更後
+git add .
+git commit -m "変更内容の説明"
+
+# リモートにプッシュ
+git push -u origin 機能ブランチ名
+```
+その後、GitLabのウェブインターフェースで「Merge Request」（GitLab版のプルリクエスト）を作成します。
+
+### Bitbucketの場合
+GitLabとほぼ同様のコマンドで、ウェブインターフェースで「Pull Request」を作成します。
+
+## 2. メールベースのパッチ送信（純粋なGit方式）
+
+これは伝統的なGitの方法で、GithubやGitLabなどのウェブサービスがなかった時代からある方法です：
+
+```bash
+# 変更をコミット後
+# パッチファイルを作成
+git format-patch origin/main --stdout > my-feature.patch
+
+# または複数のコミットをパッチにする場合
+git format-patch -n HEAD~3  # 最新の3つのコミットをパッチに
+
+# メールで送信する場合（git send-emailが設定されている場合）
+git send-email --to=メンテナのメールアドレス my-feature.patch
+```
+
+受け取った側は以下のコマンドでパッチを適用します：
+```bash
+# メールから保存したパッチを適用
+git am < パッチファイル.patch
+
+# または
+git apply パッチファイル.patch
+```
+
+## 3. リモートブランチ経由での共有（直接プッシュ＆プル）
+
+共有リポジトリへのアクセス権がある場合：
+
+```bash
+# 自分の変更をリモートブランチにプッシュ
+git push origin 自分のブランチ名
+
+# レビュアーに自分のブランチをチェックアウトしてもらう
+# レビュアー側のコマンド
+git fetch
+git checkout origin/ブランチ名
+```
+
+レビュアーは変更を確認し、問題がなければメインブランチにマージします：
+```bash
+git checkout main
+git merge --no-ff ブランチ名
+git push origin main
+```
+
+## 4. バンドル（bundle）を使用する方法
+
+ネットワーク接続がない環境や、共有リポジトリが使えない場合：
+
+```bash
+# 変更をバンドルに出力
+git bundle create my-changes.bundle HEAD~5..HEAD
+
+# バンドルをUSBや他の手段で共有
+
+# 受け取った側
+git bundle verify my-changes.bundle
+git pull my-changes.bundle master
+```
+
+どの方法を選択するかは、チームの開発環境や好みによって異なります。メールベースのパッチ送信はLinuxカーネルなどの大規模オープンソースプロジェクトでよく使われる方法です。一般的な企業開発ではGitLabやBitbucketなどのホスティングサービスを使うのが一般的です。
+
